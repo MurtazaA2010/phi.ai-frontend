@@ -47,10 +47,14 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <span className="cursor-default">Careers</span>
+                <Link to="https://www.thinkerslabe.com/careers" className="hover:text-primary transition-colors">
+                  Careers
+                </Link>
               </li>
               <li>
-                <span className="cursor-default">Contact</span>
+                <Link to="https://www.thinkerslabe.com/contact" className="hover:text-primary transition-colors">
+                  Contact
+                </Link>
               </li>
             </ul>
           </div>
@@ -59,14 +63,14 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Connect</h4>
             <div className="flex gap-4">
               <a
-                href="#"
+                href="ghttps://github.com/thinkerslabe-2026/"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="GitHub"
               >
                 <Github className="h-5 w-5" />
               </a>
               <a
-                href="#"
+                href="https://x.com/ThinkersLabe"
                 className="text-muted-foreground hover:text-primary transition-colors"
                 aria-label="Twitter"
               >

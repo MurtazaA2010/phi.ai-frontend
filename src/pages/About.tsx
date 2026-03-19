@@ -131,7 +131,7 @@ const About = () => {
             </p>*/}
 
             <p className="text-muted-foreground text-lg mt-4">
-              PHI.ai is the tool we wished existed — simple, powerful, and built
+              PHI.ai is the tool we(ThinkersLabe) wished existed — simple, powerful, and built
               to help ideas speak for themselves.
             </p>
           </div>
