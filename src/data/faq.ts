@@ -55,7 +55,7 @@ export const FAQ_DATA: FAQCategory[] = [
             {
                 question: "How can I contact support?",
                 answer:
-                    "You can reach out to our support team via the contact form on our website or by emailing support@phi.ai.",
+                    "You can reach out to our support team via the contact form on our website or by emailing murtazaabdullah989@gmail.com",
             },
         ],
     },
