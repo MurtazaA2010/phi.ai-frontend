@@ -50,7 +50,7 @@ export const FAQ_DATA: FAQCategory[] = [
             {
                 question: "Who is behind PHI.ai?",
                 answer:
-                    "We are a team of students, developers, and creators passionate about making education more accessible through better visualization tools. For more information, visit our About page.",
+                    "PHI.ai is createad and maintained by ThinkersLabe.com which was founded by Murtaza Abdullah in Jan, 2026",
             },
             {
                 question: "How can I contact support?",
