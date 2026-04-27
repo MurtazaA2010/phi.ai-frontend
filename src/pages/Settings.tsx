@@ -9,8 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Shield, CreditCard, Bell, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { clearApiBaseUrlOverride, getApiBaseUrl, setApiBaseUrl } from "@/lib/api";
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = getApiBaseUrl();
 
 const Settings = () => {
     const { user, token, logout, updateName } = useAuth();
@@ -20,6 +21,10 @@ const Settings = () => {
     // Profile form state
     const [displayName, setDisplayName] = useState(user?.name ?? "");
     const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+    // API URL (runtime override) state
+    const [apiBaseUrl, setApiBaseUrlState] = useState(() => getApiBaseUrl());
+    const [isSavingApiUrl, setIsSavingApiUrl] = useState(false);
 
     // Password form state
     const [currentPassword, setCurrentPassword] = useState("");
@@ -66,6 +71,7 @@ const Settings = () => {
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
+                    "ngrok-skip-browser-warning": "true",
                 },
                 body: JSON.stringify({
                     current_password: currentPassword,
@@ -85,6 +91,26 @@ const Settings = () => {
         } finally {
             setIsSavingPassword(false);
         }
+    };
+
+    const handleSaveApiUrl = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingApiUrl(true);
+        try {
+            const normalized = setApiBaseUrl(apiBaseUrl);
+            toast.success(`API URL saved: ${normalized}`);
+            toast.info("Reloading to apply API URL...");
+            window.location.reload();
+        } finally {
+            setIsSavingApiUrl(false);
+        }
+    };
+
+    const handleResetApiUrl = () => {
+        clearApiBaseUrlOverride();
+        toast.success("API URL reset to default/env");
+        toast.info("Reloading to apply API URL...");
+        window.location.reload();
     };
 
     return (
@@ -179,6 +205,37 @@ const Settings = () => {
                                 <div className="pt-4">
                                     <Button type="submit" disabled={isSavingProfile}>
                                         {isSavingProfile ? "Saving..." : "Save Changes"}
+                                    </Button>
+                                </div>
+                            </form>
+
+                            <Separator />
+
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-medium">Backend API URL</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Set the public backend URL your browser can reach (e.g. your ngrok domain).
+                                </p>
+                            </div>
+                            <form onSubmit={handleSaveApiUrl} className="space-y-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="api-url">API Base URL</Label>
+                                    <Input
+                                        id="api-url"
+                                        value={apiBaseUrl}
+                                        onChange={(e) => setApiBaseUrlState(e.target.value)}
+                                        placeholder="https://xxxx.ngrok-free.dev"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Current in-use: <span className="font-mono">{API_BASE_URL}</span>
+                                    </p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button type="submit" disabled={isSavingApiUrl}>
+                                        {isSavingApiUrl ? "Saving..." : "Save API URL"}
+                                    </Button>
+                                    <Button type="button" variant="outline" onClick={handleResetApiUrl}>
+                                        Reset
                                     </Button>
                                 </div>
                             </form>

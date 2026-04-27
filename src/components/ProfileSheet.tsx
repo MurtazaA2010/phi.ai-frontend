@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { User, CreditCard, Box, LogOut, Settings, Sparkles, Loader2, FileCode } from "lucide-react";
 import { toast } from "sonner";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface Project {
     id: string;
@@ -13,6 +14,8 @@ interface Project {
     code: string;
     created_at: string;
 }
+
+const API_BASE_URL = getApiBaseUrl();
 
 const ProfileSheet = () => {
     const { user, logout, token } = useAuth();
@@ -36,9 +39,10 @@ const ProfileSheet = () => {
     const fetchProjects = async () => {
         setIsLoadingProjects(true);
         try {
-            const res = await fetch("http://localhost:8000/projects", {
+            const res = await fetch(`${API_BASE_URL}/projects`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
+                    "ngrok-skip-browser-warning": "true",
                 },
             });
             if (res.ok) {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface User {
   id: string;
@@ -20,7 +21,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, username: string, password: string) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
   googleLogin: (token: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -29,7 +29,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = "http://localhost:8000";
+// Helper function to format error messages
+function getErrorMessage(error: unknown, defaultMessage: string): string {
+  if (error instanceof Error) {
+    // Network errors
+    if (error.message === "Failed to fetch") {
+      return `Connection error: Check your backend URL and ensure ${getApiBaseUrl()} is accessible`;
+    }
+    return error.message;
+  }
+  return defaultMessage;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -50,9 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async (authToken: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await fetch(`${apiUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${authToken}`,
+          "ngrok-skip-browser-warning": "true",
         },
       });
 
@@ -75,10 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signin`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await fetch(`${apiUrl}/auth/signin`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -95,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.success("Welcome back!");
       navigate("/workspace");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Login failed";
+      const message = getErrorMessage(error, "Login failed");
       toast.error(message);
       throw error;
     }
@@ -103,10 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (name: string, email: string, username: string, password: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await fetch(`${apiUrl}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ name, email, username, password }),
       });
@@ -116,39 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(error.detail || "Signup failed");
       }
 
-      // Signup now only sends verification email, no token returned
-      toast.success("Verification code sent! Please check your email.");
-      // Do not navigate or set token yet
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Signup failed";
-      toast.error(message);
-      throw error;
-    }
-  };
-
-  const verifyEmail = async (email: string, code: string) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, code }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Verification failed");
-      }
-
       const data = await response.json();
       setToken(data.access_token);
       setUser(data.user);
       localStorage.setItem("auth_token", data.access_token);
-      toast.success("Email verified successfully!");
+      toast.success("Account created! Welcome to PHI.ai 🎉");
       navigate("/workspace");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Verification failed";
+      const message = getErrorMessage(error, "Signup failed");
       toast.error(message);
       throw error;
     }
@@ -156,10 +147,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const googleLogin = async (token: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/google`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await fetch(`${apiUrl}/auth/google`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "ngrok-skip-browser-warning": "true",
         },
         body: JSON.stringify({ token }),
       });
@@ -176,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.success("Successfully signed in with Google!");
       navigate("/workspace");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Google login failed";
+      const message = getErrorMessage(error, "Google login failed");
       toast.error(message);
       throw error;
     }
@@ -198,11 +191,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateName = async (name: string) => {
     if (!token) throw new Error("Not authenticated");
-    const response = await fetch(`${API_BASE_URL}/auth/update-name`, {
+    const apiUrl = getApiBaseUrl();
+    const response = await fetch(`${apiUrl}/auth/update-name`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true",
       },
       body: JSON.stringify({ name }),
     });
@@ -215,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, signup, verifyEmail, googleLogin, logout, refreshUser, updateName }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, signup, googleLogin, logout, refreshUser, updateName }}>
       {children}
     </AuthContext.Provider>
   );

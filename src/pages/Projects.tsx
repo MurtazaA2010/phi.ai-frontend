@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, ArrowRight, Calendar, Code2, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { getApiBaseUrl } from "@/lib/api";
 
 interface Project {
     id: string;
@@ -13,6 +14,8 @@ interface Project {
     description?: string;
     created_at: string;
 }
+
+const API_BASE_URL = getApiBaseUrl();
 
 const Projects = () => {
     const { user, token } = useAuth();
@@ -28,9 +31,10 @@ const Projects = () => {
 
         const fetchProjects = async () => {
             try {
-                const res = await fetch("http://localhost:8000/projects", {
+                const res = await fetch(`${API_BASE_URL}/projects`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
+                        "ngrok-skip-browser-warning": "true",
                     },
                 });
 
@@ -56,10 +60,11 @@ const Projects = () => {
         if (!confirm("Are you sure you want to delete this project?")) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/projects/${id}`, {
+            const res = await fetch(`${API_BASE_URL}/projects/${id}`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${token}`,
+                    "ngrok-skip-browser-warning": "true",
                 },
             });
 

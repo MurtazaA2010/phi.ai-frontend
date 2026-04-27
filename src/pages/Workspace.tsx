@@ -19,11 +19,14 @@ import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { getApiBaseUrl, resolveVideoUrl } from "@/lib/api";
 
 type ViewMode = "prompt" | "code" | "preview";
 
+const API_BASE_URL = getApiBaseUrl();
+
 const Workspace = () => {
-  const { user, token, logout, refreshUser } = useAuth();
+  const { user, token, logout, refreshUser, isLoading: isAuthLoading } = useAuth();
   const [prompt, setPrompt] = useState("");
   const [generatedCode, setGeneratedCode] = useState("");
   const [originalGeneratedCode, setOriginalGeneratedCode] = useState(""); // Track AI-generated code
@@ -33,22 +36,23 @@ const Workspace = () => {
   const [isRendering, setIsRendering] = useState(false);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoLoadError, setVideoLoadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [preEditCode, setPreEditCode] = useState("");
 
-  /* ------------------ CLEANUP BLOB URL ------------------ */
-  useEffect(() => {
-    return () => {
-      if (videoUrl) URL.revokeObjectURL(videoUrl);
-    };
-  }, [videoUrl]);
+  /* ------------------ CLEANUP BLOB URL (not needed, using direct URL now) -- */
 
   /* ------------------ GENERATE CODE ------------------ */
   /* ------------------ GENERATE CODE ------------------ */
   const generateCode = async (promptText: string) => {
     if (!promptText.trim()) {
       toast.error("Please enter a prompt");
+      return;
+    }
+
+    if (isAuthLoading) {
+      toast.info("Restoring your session... please wait a moment.");
       return;
     }
 
@@ -61,15 +65,17 @@ const Workspace = () => {
     setGeneratedCode("");
     setOriginalGeneratedCode("");
     setVideoUrl(null);
+    setVideoLoadError(null);
 
     try {
       const formData = new FormData();
       formData.append("prompt", promptText);
 
-      const res = await fetch("http://localhost:8000/generate-code", {
+      const res = await fetch(`${API_BASE_URL}/generate-code`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
         },
         body: formData,
       });
@@ -139,6 +145,11 @@ const Workspace = () => {
   const handleRenderPreviewWithCode = async (codeToRender: string) => {
     if (!codeToRender || isRendering) return;
 
+    if (isAuthLoading) {
+      toast.info("Restoring your session... please wait a moment.");
+      return;
+    }
+
     if (!token) {
       toast.error("Please sign in to render videos");
       return;
@@ -146,6 +157,7 @@ const Workspace = () => {
 
     setIsRendering(true);
     setViewMode("preview");
+    setVideoLoadError(null);
 
     try {
       const formData = new FormData();
@@ -153,39 +165,58 @@ const Workspace = () => {
       formData.append("is_rerender", "false");
       console.log("▶️ Auto-rendering after code generation");
 
-      const res = await fetch("http://localhost:8000/render", {
+      const res = await fetch(`${API_BASE_URL}/render`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "ngrok-skip-browser-warning": "true",
         },
         body: formData,
       });
 
       if (!res.ok) {
+        let errorText = "";
+        try {
+          const contentType = res.headers.get("content-type") || "";
+          if (contentType.includes("application/json")) {
+            const json = await res.json();
+            errorText = json?.detail || json?.message || JSON.stringify(json);
+          } else {
+            errorText = (await res.text()).slice(0, 500);
+          }
+        } catch {
+          // ignore parse failures
+        }
+
         if (res.status === 401) {
-          toast.error("Session expired. Please sign in again.");
+          toast.error(errorText || "Session expired. Please sign in again.");
           logout();
           return;
         }
         if (res.status === 429) {
-          const error = await res.json();
-          toast.error(error.detail || "Daily credit limit reached");
+          toast.error(errorText || "Daily credit limit reached");
           await refreshUser();
           return;
         }
-        throw new Error("Render failed");
+        throw new Error(`Render failed (${res.status})${errorText ? `: ${errorText}` : ""}`);
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setVideoUrl(url);
+      const data = await res.json();
+
+      // Backend returns { video_url: "/videos/filename.mp4" } or a full URL
+      const rawUrl: string = data.video_url || data.url || "";
+      if (!rawUrl) throw new Error("No video URL returned from server");
+
+      const fullUrl = resolveVideoUrl(rawUrl);
+      setVideoUrl(fullUrl);
 
       toast.success("Video rendered!");
 
       await refreshUser(); // Refresh credits
     } catch (err) {
       console.error(err);
-      toast.error("Rendering failed");
+      const message = err instanceof Error ? err.message : "Rendering failed";
+      toast.error(message);
       setViewMode("code"); // Fall back to code view on error
     } finally {
       setIsRendering(false);
@@ -273,7 +304,7 @@ const Workspace = () => {
                 <Button
                   variant={viewMode === "preview" ? "secondary" : "ghost"}
                   size="sm"
-                  disabled={isRendering}
+                  disabled={isRendering || isAuthLoading || !token}
                   onClick={() => {
                     if (videoUrl) {
                       // Video already rendered — just switch view
@@ -377,7 +408,7 @@ const Workspace = () => {
                 placeholder="Your generated code will appear here..."
               />
               <div className="p-4">
-                <Button className="w-full" onClick={handleRenderPreview} disabled={isRendering}>
+                <Button className="w-full" onClick={handleRenderPreview} disabled={isRendering || isAuthLoading || !token}>
                   <Play className="h-4 w-4 mr-2" />
                   {generatedCode !== originalGeneratedCode ? "Re-Render" : "Render Preview"}
                 </Button>
@@ -391,7 +422,26 @@ const Workspace = () => {
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
               ) : videoUrl ? (
                 <div className="w-full max-w-2xl">
-                  <video src={videoUrl} controls className="w-full rounded-lg" />
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full rounded-lg"
+                    onError={() => setVideoLoadError("Video failed to load. Your backend must publicly serve this URL.")}
+                  />
+                  {videoLoadError && (
+                    <div className="mt-3 rounded-lg border bg-muted/30 p-3 text-sm">
+                      <p className="font-medium">{videoLoadError}</p>
+                      <p className="mt-2 break-all text-muted-foreground">
+                        URL:{" "}
+                        <a className="underline" href={videoUrl} target="_blank" rel="noreferrer">
+                          {videoUrl}
+                        </a>
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        API base: <span className="font-mono">{API_BASE_URL}</span>
+                      </p>
+                    </div>
+                  )}
                   <Button className="w-full mt-4" onClick={handleDownload}>
                     <Download className="h-4 w-4 mr-2" />
                     Download Video

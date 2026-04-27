@@ -17,12 +17,23 @@ const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!name.trim() || !email.trim() || !username.trim() || !password.trim()) {
+      return;
+    }
+
+    if (password.length < 8) {
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await signup(name, email, username, password);
     } catch (error) {
-      // Ignored error for now
+      // Error is already handled by the signup function which shows a toast
+      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }
