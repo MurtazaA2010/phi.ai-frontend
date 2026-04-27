@@ -31,27 +31,50 @@ const Projects = () => {
 
         const fetchProjects = async () => {
             try {
-                const res = await fetch(`${API_BASE_URL}/projects`, {
+                // Backend route is mounted at "/projects/" (FastAPI may redirect without the slash).
+                // Avoid redirects because they can cause auth headers to be dropped in some environments.
+                const res = await fetch(`${API_BASE_URL}/projects/`, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         "ngrok-skip-browser-warning": "true",
                     },
                 });
 
-                if (!res.ok) throw new Error("Failed to fetch projects");
+                if (res.status === 401) {
+                    toast.error("Session expired. Please sign in again.");
+                    navigate("/signin");
+                    return;
+                }
+
+                if (!res.ok) {
+                    let detail = "";
+                    try {
+                        const ct = res.headers.get("content-type") || "";
+                        if (ct.includes("application/json")) {
+                            const json = await res.json();
+                            detail = json?.detail || json?.message || "";
+                        } else {
+                            detail = (await res.text()).slice(0, 300);
+                        }
+                    } catch {
+                        // ignore parse failures
+                    }
+                    throw new Error(detail || "Failed to fetch projects");
+                }
 
                 const data = await res.json();
-                setProjects(data.projects);
+                const next = Array.isArray(data) ? data : (data?.projects ?? []);
+                setProjects(next);
             } catch (error) {
                 console.error(error);
-                toast.error("Failed to load projects");
+                toast.error(error instanceof Error ? error.message : "Failed to load projects");
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchProjects();
-    }, [token]);
+    }, [token, navigate]);
 
     const handleDelete = async (e: React.MouseEvent, id: string) => {
         e.preventDefault();
