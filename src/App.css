@@ -1,8 +1,11 @@
+/* App-wide root sizing.
+   The default Vite template constrained #root, which breaks full-screen pages
+   like the Workspace on mobile (code/video become cramped or off-screen). */
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 .logo {

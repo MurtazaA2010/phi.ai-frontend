@@ -210,35 +210,6 @@ const Settings = () => {
                             </form>
 
                             <Separator />
-
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-medium">Backend API URL</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Set the public backend URL your browser can reach (e.g. your ngrok domain).
-                                </p>
-                            </div>
-                            <form onSubmit={handleSaveApiUrl} className="space-y-3">
-                                <div className="space-y-2">
-                                    <Label htmlFor="api-url">API Base URL</Label>
-                                    <Input
-                                        id="api-url"
-                                        value={apiBaseUrl}
-                                        onChange={(e) => setApiBaseUrlState(e.target.value)}
-                                        placeholder="https://xxxx.ngrok-free.dev"
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Current in-use: <span className="font-mono">{API_BASE_URL}</span>
-                                    </p>
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button type="submit" disabled={isSavingApiUrl}>
-                                        {isSavingApiUrl ? "Saving..." : "Save API URL"}
-                                    </Button>
-                                    <Button type="button" variant="outline" onClick={handleResetApiUrl}>
-                                        Reset
-                                    </Button>
-                                </div>
-                            </form>
                         </TabsContent>
 
                         {/* ACCOUNT & SECURITY TAB */}

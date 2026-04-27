@@ -351,14 +351,14 @@ const Workspace = () => {
       </header>
 
       {/* MAIN */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         {/* PROMPT PANEL */}
-        <div className="w-full md:w-2/5 border-r p-4 flex flex-col">
+        <div className="w-full md:w-2/5 md:border-r border-b md:border-b-0 p-4 flex flex-col">
           <Textarea
             placeholder="Describe the animation..."
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="flex-1 resize-none"
+            className="min-h-[35vh] md:min-h-0 flex-1 resize-none"
           />
 
           <div className="mt-4 flex gap-2">
@@ -385,7 +385,7 @@ const Workspace = () => {
         </div>
 
         {/* OUTPUT PANEL */}
-        <div className="hidden md:flex flex-1 flex-col bg-card/30">
+        <div className="flex flex-1 flex-col bg-card/30">
           {viewMode === "code" && (
             <>
               <div className="p-4 border-b flex justify-between items-center">
@@ -423,7 +423,7 @@ const Workspace = () => {
                 readOnly={!isEditing}
                 value={generatedCode}
                 onChange={(e) => setGeneratedCode(e.target.value)}
-                className={`flex-1 resize-none font-mono text-sm rounded-none border-none ${isEditing ? "bg-background" : "bg-muted/30"}`}
+                className={`min-h-[45vh] md:min-h-0 flex-1 resize-none font-mono text-sm rounded-none border-none ${isEditing ? "bg-background" : "bg-muted/30"}`}
                 placeholder="Your generated code will appear here..."
               />
               <div className="p-4">
@@ -444,7 +444,8 @@ const Workspace = () => {
                   <video
                     src={videoUrl}
                     controls
-                    className="w-full rounded-lg"
+                    playsInline
+                    className="w-full rounded-lg aspect-video bg-black"
                     onError={() => setVideoLoadError("Video failed to load. Your backend must publicly serve this URL.")}
                   />
                   {videoLoadError && (
