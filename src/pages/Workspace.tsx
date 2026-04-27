@@ -208,7 +208,26 @@ const Workspace = () => {
       if (!rawUrl) throw new Error("No video URL returned from server");
 
       const fullUrl = resolveVideoUrl(rawUrl);
-      setVideoUrl(fullUrl);
+      
+      // PRODUCTION FIX: Fetch the video file as a blob to bypass ngrok warning
+      console.log("📥 Downloading video blob to bypass ngrok warning...");
+      const videoFileRes = await fetch(fullUrl, {
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+        },
+      });
+      
+      if (!videoFileRes.ok) throw new Error("Failed to download video file");
+      
+      const videoBlob = await videoFileRes.blob();
+      const blobUrl = URL.createObjectURL(videoBlob);
+      
+      // Cleanup previous blob URL if it exists
+      if (videoUrl && videoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(videoUrl);
+      }
+      
+      setVideoUrl(blobUrl);
 
       toast.success("Video rendered!");
 
